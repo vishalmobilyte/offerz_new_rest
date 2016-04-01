@@ -68,6 +68,11 @@ class Offerz_web_services
 			$result = $this->login_user();
 		}
 		
+		else if( $this->params->method == "logout_user" )
+		{
+			$result = $this->logout_user();
+		}
+		
 		else if( $this->params->method == "connect_user_fb" )
 		{
 			$result = $this->connect_user_fb();
@@ -255,6 +260,7 @@ class Offerz_web_services
 		$extra_qry = "password='$password',";
 		}
 		if($oauth_token!='' && $oauth_secret_token!='' && $screen_name!='' && $twitter_id!='' ){
+		$get_data_twt = $this->get_twitter_all_data($screen_name);
 		$twt_followers = @$get_data_twt->user->followers_count;
 		//$twt_pic = str_replace("_normal","",$get_data_twt->user->profile_image_url);
 		$twt_pic = @$get_data_twt->user->profile_image_url;
@@ -385,6 +391,53 @@ class Offerz_web_services
 				$msg = "Invalid Email or Password!";
 				$ret_array['success']='0';
 				$ret_array['message']='Invalid Email or Password!';
+				array_push($this->json_response,$ret_array);
+				//echo("Validation errors:<br/>");
+				
+				$this->success_failure_msgs(301, $msg, $this->json_response);
+			}
+		}	
+		else
+		{
+		$msg = "Required Parameters Are Missing.";
+		$this->json_response = "";
+		$this->success_failure_msgs(301, $msg, $this->json_response);
+		}
+			
+	}
+	// ========================== LOGOUT USER ============================
+	
+	private function logout_user(){
+	global $conn;
+	// echo $this->params->email; die("--3333");
+	if( $this->params->user_id )
+		{
+		$user_id = 	$this->params->user_id;
+		
+	
+	
+			if($user_id>0)
+			{
+				$sql_upd="UPDATE users SET 
+	
+				device_token='',
+				is_logged_in='0'
+				
+				
+				WHERE id='$user_id'";
+				$result_upd=mysqli_query($conn,$sql_upd);
+				
+				$ret_array['success']='1';
+				$ret_array['data']='Logged Out Successfully';
+				$ret_array['message']='Logged Out Successfully';
+				array_push($this->json_response,$ret_array);
+				$this->success_failure_msgs(200, "Logged Out Successfully", $this->json_response);
+			}
+			else
+			{
+				$msg = "Invalid User Id!";
+				$ret_array['success']='0';
+				$ret_array['message']='Invalid User Id';
 				array_push($this->json_response,$ret_array);
 				//echo("Validation errors:<br/>");
 				
@@ -676,7 +729,7 @@ class Offerz_web_services
 
 		LEFT JOIN clients CL ON O.client_id = CL.id 
 		
-		WHERE UO.user_id = $user_id AND O.is_paused !=1 AND O.date_send_on <= CURDATE() ORDER BY UO.created_at DESC $limit_condition";
+		WHERE UO.user_id = $user_id AND O.is_deleted = 0 AND O.is_paused !=1 AND O.date_send_on <= CURDATE() ORDER BY UO.created_at DESC $limit_condition";
 		
 		
 	//	echo $sql; die;
@@ -752,7 +805,7 @@ class Offerz_web_services
 		
 		// ----------- GET SHARED TWEET ID -----------------------------
 			if($shared_via == 'TWITTER'){
-			$get_twitter_data = $this->get_twitter_all_data($screen_name);
+			$get_twitter_data = @$this->get_twitter_all_data($screen_name);
 			//print_r($get_twitter_data->id);
 			$twt_id = @$get_twitter_data->id;
 			}
@@ -1148,6 +1201,7 @@ class Offerz_web_services
 		}
 			
 	}
+	
 	
 	function get_twitter_data($screen_name){
 	$oauth_access_token = '';
